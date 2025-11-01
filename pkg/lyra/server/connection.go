@@ -19,12 +19,13 @@ func newReader(conn net.Conn) *bufio.Reader {
 
 func FindReqContentLength(headers []byte) int {
 
+	headers = bytes.ToLower(headers)
 	index1 := bytes.Index(headers, []byte("content-length"))
 	if index1 == -1 {
 		return 0
 	}
 	headersIndex := headers[index1:]
-	index2 := bytes.Index(headersIndex, []byte("\n")) + index1
+	index2 := bytes.Index(headersIndex, []byte("\r\n")) + index1
 	if index2 == -1 {
 		return 0
 	}
@@ -62,12 +63,12 @@ func readHeadersLines(reader *bufio.Reader) ([]byte, error) {
 			return headers, err
 		}
 
-		if bytes.Equal(line, []byte("\r\n")) {
+		if len(line) == 2 && line[0] == '\r' && line[1] == '\n' {
 			break
 		}
 		headers = append(headers, line...)
 	}
-	return bytes.ToLower(headers), nil
+	return headers, nil
 }
 
 func readReqBody(reader *bufio.Reader, c int) ([]byte, error) {

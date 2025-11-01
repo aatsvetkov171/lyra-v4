@@ -9,28 +9,37 @@ type Request struct {
 	path    string
 	proto   string
 	headers map[string]string
-	body    string
+	body    []byte
 }
 
-func NewRequest(Fline []byte, lines []byte, body []byte) *Request {
-	firstLineString := strings.TrimSpace(string(Fline))
-	firstLineStringSlice := strings.Fields(firstLineString)
-	headers := make(map[string]string)
-	linesString := strings.TrimSpace(string(lines))
-	linesStringSlice := strings.Split(linesString, "\r\n")
-
-	for i := 0; i < len(linesStringSlice); i++ {
-		header := strings.SplitN(linesStringSlice[i], ":", 2)
-		headers[strings.ToLower(header[0])] = header[1]
-
+func (r *Request) parseHeaders(headers []byte) {
+	headersStrings := strings.Split(string(headers), "\r\n")
+	for i := 0; i < len(headersStrings); i++ {
+		header := strings.SplitN(strings.TrimSpace(headersStrings[i]), ":", 2)
+		if len(header) < 2 {
+			continue
+		}
+		r.headers[strings.ToLower(header[0])] = header[1]
 	}
+}
 
+func NewRequest(Fline []byte, headers []byte, body []byte) *Request {
 	req := Request{
-		method:  firstLineStringSlice[0],
-		path:    firstLineStringSlice[1],
-		proto:   firstLineStringSlice[2],
-		headers: headers,
-		body:    string(body),
+		headers: make(map[string]string),
+		body:    body,
 	}
+	firstline := strings.Fields(strings.TrimSpace(string(Fline)))
+	if len(firstline) >= 3 {
+		req.method = strings.ToUpper(firstline[0])
+		req.path = firstline[1]
+		req.proto = strings.ToUpper(firstline[2])
+	} else {
+		req.method = "UNKHOW"
+		req.path = "/"
+		req.proto = "HTTP/1.1"
+	}
+
+	req.parseHeaders(headers)
+
 	return &req
 }
