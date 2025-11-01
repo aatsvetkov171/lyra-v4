@@ -15,11 +15,11 @@ type Request struct {
 func (r *Request) parseHeaders(headers []byte) {
 	headersStrings := strings.Split(string(headers), "\r\n")
 	for i := 0; i < len(headersStrings); i++ {
-		header := strings.SplitN(strings.TrimSpace(headersStrings[i]), ":", 2)
+		header := strings.SplitN(headersStrings[i], ":", 2)
 		if len(header) < 2 {
 			continue
 		}
-		r.headers[strings.ToLower(header[0])] = header[1]
+		r.headers[strings.TrimSpace(strings.ToLower(header[0]))] = strings.TrimSpace(header[1])
 	}
 }
 
@@ -34,7 +34,7 @@ func NewRequest(Fline []byte, headers []byte, body []byte) *Request {
 		req.path = firstline[1]
 		req.proto = strings.ToUpper(firstline[2])
 	} else {
-		req.method = "UNKHOW"
+		req.method = "UNKNOWN"
 		req.path = "/"
 		req.proto = "HTTP/1.1"
 	}
@@ -42,4 +42,8 @@ func NewRequest(Fline []byte, headers []byte, body []byte) *Request {
 	req.parseHeaders(headers)
 
 	return &req
+}
+
+func (r *Request) GetHeaders() map[string]string {
+	return r.headers
 }

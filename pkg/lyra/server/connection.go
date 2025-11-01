@@ -131,7 +131,9 @@ func (l *lyra) connHandle(conn net.Conn) {
 		}
 
 		request := http1.NewRequest(fLine, headersLines, body)
-
+		if connVal, ok := request.GetHeaders()["connection"]; ok && connVal == "close" {
+			keepAlive = false
+		}
 		fmt.Println(request)
 
 		messageCount += 1
