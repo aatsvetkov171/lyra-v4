@@ -47,11 +47,11 @@ func readFirsLine(reader *bufio.Reader) ([]byte, error) {
 }
 
 func isBlank(fline []byte) bool {
-	return len(fline) <= 0
+	return len(fline) == 0
 }
 
 func readHeadersLines(reader *bufio.Reader) ([]byte, error) {
-	headers := make([]byte, 6)
+	headers := make([]byte, 0)
 	for {
 		line, err := reader.ReadBytes('\n')
 		if err != nil {
@@ -96,7 +96,6 @@ func (l *lyra) connHandle(conn net.Conn) {
 				return
 			}
 			if err == io.EOF {
-				fmt.Println("Соединение прервано")
 				return
 			}
 			fmt.Println(err.Error())
@@ -108,7 +107,6 @@ func (l *lyra) connHandle(conn net.Conn) {
 		headersLines, err := readHeadersLines(reader)
 		if err != nil {
 			if err == io.EOF {
-				fmt.Println("соединение прервано")
 				return
 			}
 			fmt.Println("неизвестная ошибка чтения строк:", err.Error())
@@ -137,7 +135,7 @@ func (l *lyra) connHandle(conn net.Conn) {
 
 		messageCount += 1
 		conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Length:5\r\nConnection:keep-alive\r\n\r\nhello"))
-		if !keepAlive || messageCount < l.config.MaxConnMesgCount {
+		if !keepAlive || messageCount >= l.config.MaxConnMesgCount {
 			break
 		}
 	}
