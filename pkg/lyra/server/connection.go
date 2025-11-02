@@ -17,6 +17,11 @@ func newReader(conn net.Conn) *bufio.Reader {
 	return reader
 }
 
+func newWriter(conn net.Conn) *bufio.Writer {
+	writer := bufio.NewWriter(conn)
+	return writer
+}
+
 func FindReqContentLength(headers []byte) int {
 
 	headers = bytes.ToLower(headers)
@@ -137,7 +142,13 @@ func (l *lyra) connHandle(conn net.Conn) {
 		fmt.Println(request)
 
 		messageCount += 1
-		conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Length:5\r\nConnection:keep-alive\r\n\r\nhello"))
+
+		writer := newWriter(conn)
+
+		response := http1.NewResponse()
+		response.AddBody([]byte("<p>Lyyyyraaa</p>"))
+		writer.Write(response.Build())
+		writer.Flush()
 		if !keepAlive || messageCount >= l.config.MaxConnMesgCount {
 			break
 		}
