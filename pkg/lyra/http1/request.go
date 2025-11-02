@@ -47,3 +47,11 @@ func NewRequest(Fline []byte, headers []byte, body []byte) *Request {
 func (r *Request) GetHeaders() map[string]string {
 	return r.headers
 }
+
+func (r *Request) GetMethod() string {
+	return r.method
+}
+
+func (r *Request) GetPath() string {
+	return r.path
+}
