@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"net"
 	"time"
+
+	"github.com/aatsvetkov171/lyra-v4/pkg/lyra/http1"
+	"github.com/aatsvetkov171/lyra-v4/pkg/lyra/views"
 )
 
 type Config struct {
@@ -37,6 +40,9 @@ func (l *lyra) ListenAdnServ() {
 		fmt.Println("create listener error:", err.Error())
 	}
 	defer listener.Close()
+
+	router := http1.NewRouter()
+	router.Handle("GET", "/", views.Hello)
 	fmt.Println("Lyra listening on", l.config.Addr)
 
 	for {

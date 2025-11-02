@@ -85,7 +85,7 @@ func readReqBody(reader *bufio.Reader, c int) ([]byte, error) {
 	return buffer, err
 }
 
-func (l *lyra) connHandle(conn net.Conn) {
+func (l *lyra) connHandle(conn net.Conn, router *http1.Router) {
 	defer func() {
 		conn.Close()
 	}()
@@ -145,9 +145,10 @@ func (l *lyra) connHandle(conn net.Conn) {
 
 		writer := newWriter(conn)
 
-		response := http1.NewResponse()
-		response.AddBody([]byte("<p>Lyyyyraaa</p>"))
+		_, responseFunc := router.GetResponse(request)
+		response := responseFunc(request)
 		writer.Write(response.Build())
+
 		writer.Flush()
 		if !keepAlive || messageCount >= l.config.MaxConnMesgCount {
 			break
