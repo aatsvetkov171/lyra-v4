@@ -96,7 +96,7 @@ func (l *lyra) connHandle(conn net.Conn, router *http1.Router) {
 	activeCh := make(chan struct{})
 
 	go func() {
-		timeout := 7 * time.Second
+		timeout := l.config.ConnTimeout
 		timer := time.NewTimer(timeout)
 		defer timer.Stop()
 
@@ -120,13 +120,12 @@ func (l *lyra) connHandle(conn net.Conn, router *http1.Router) {
 	}()
 
 	for {
-		conn.SetReadDeadline(time.Now().Add(time.Duration(l.config.MaxConnTime) * time.Second))
+		conn.SetReadDeadline(time.Now().Add(l.config.ConnTimeout + (3 * time.Second)))
 		//--------------------------------------------
 		fLine, err := readFirsLine(reader)
 		if err != nil {
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
 				fmt.Println("Time out")
-				close(doneCh)
 				return
 			}
 			if err == io.EOF {

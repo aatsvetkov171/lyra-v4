@@ -14,21 +14,36 @@ type Config struct {
 	KeepAlive          bool
 	ReadTimeout        time.Duration
 	WriteTimeout       time.Duration
-	MaxConnTime        int
+	ConnTimeout        time.Duration
 	MaxConnMesgCount   int
 	ReqContentLenLimit [2]int
+}
+
+func NewConfig(addr string) *Config {
+	newConfig := Config{
+		Addr:               addr,
+		Network:            "tcp",
+		KeepAlive:          true,
+		ReadTimeout:        10 * time.Second,
+		WriteTimeout:       10 * time.Second,
+		ConnTimeout:        10 * time.Second,
+		MaxConnMesgCount:   100,
+		ReqContentLenLimit: [2]int{0, 0},
+	}
+	return &newConfig
 }
 
 type lyra struct {
 	Name   string
 	config Config
-	//router
+	router *http1.Router
 }
 
-func NewServer(conf *Config) *lyra {
+func NewServer(conf *Config, router *http1.Router) *lyra {
 	newLyra := lyra{
 		Name:   "Lyra-v4",
 		config: *conf,
+		router: router,
 	}
 	return &newLyra
 }
@@ -40,8 +55,7 @@ func (l *lyra) ListenAdnServ() {
 	}
 	defer listener.Close()
 
-	router := http1.NewRouter()
-	router.Handle("GET", "/", http1.Hello)
+	l.router.Handle("GET", "/", http1.Hello)
 	fmt.Println("Lyra listening on", l.config.Addr)
 
 	for {
@@ -49,6 +63,6 @@ func (l *lyra) ListenAdnServ() {
 		if err != nil {
 			fmt.Println("accept error:", err.Error())
 		}
-		go l.connHandle(conn, router)
+		go l.connHandle(conn, l.router)
 	}
 }
