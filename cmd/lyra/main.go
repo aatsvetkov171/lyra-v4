@@ -9,6 +9,9 @@ func main() {
 
 	config := server.NewConfig("localhost:8000")
 	router := http1.NewRouter()
+
+	router.GET("/", IndexPage)
+
 	server := server.NewServer(config, router)
 	server.ListenAdnServ()
 

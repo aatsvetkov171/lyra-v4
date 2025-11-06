@@ -2,11 +2,10 @@ package server
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"io"
 	"net"
-	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aatsvetkov171/lyra-v4/pkg/lyra/http1"
@@ -22,116 +21,61 @@ func newWriter(conn net.Conn) *bufio.Writer {
 	return writer
 }
 
-func FindReqContentLength(headers []byte) int {
-
-	headers = bytes.ToLower(headers)
-	index1 := bytes.Index(headers, []byte("content-length"))
-	if index1 == -1 {
-		return 0
-	}
-	headersIndex := headers[index1:]
-	index2 := bytes.Index(headersIndex, []byte("\r\n")) + index1
-	if index2 == -1 {
-		return 0
-	}
-	res := headers[index1:index2]
-	resBytes := bytes.TrimSpace(bytes.Split(res, []byte(":"))[1])
-	resInt, err := strconv.Atoi(string(resBytes))
-	if err != nil {
-		fmt.Println(err.Error())
-		return 0
-	}
-	return resInt
-}
-
-func readFirsLine(reader *bufio.Reader) ([]byte, error) {
-	line, err := reader.ReadBytes('\n')
-	if err != nil {
-		return line, err
-	}
-	return line, nil
-}
-
 func isBlank(fline []byte) bool {
 	return len(fline) == 0
 }
 
-func readHeadersLines(reader *bufio.Reader) ([]byte, error) {
-	headers := make([]byte, 0)
+func keepAliveTimer(conn net.Conn, timeout time.Duration, activeCh, doneCh chan struct{}) {
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
 	for {
-		line, err := reader.ReadBytes('\n')
-		if err != nil {
-			if err == io.EOF {
-				fmt.Println("соединение закрыто")
-				return headers, err
+		select {
+		case <-activeCh:
+			if !timer.Stop() {
+				<-timer.C
 			}
-			return headers, err
+			timer.Reset(timeout)
+		case <-timer.C:
+			fmt.Println("keep-alive timeout, conn closed")
+			conn.Close()
+			close(doneCh)
+			return
+		case <-doneCh:
+			return
 		}
-
-		if len(line) == 2 && line[0] == '\r' && line[1] == '\n' {
-			break
-		}
-		headers = append(headers, line...)
 	}
-	return headers, nil
-}
-
-func readReqBody(reader *bufio.Reader, c int) ([]byte, error) {
-	if c == 0 {
-		return []byte(""), nil
-	}
-	buffer := make([]byte, c)
-	_, err := reader.Read(buffer)
-	return buffer, err
 }
 
 func (l *lyra) connHandle(conn net.Conn, router *http1.Router) {
 	defer func() {
 		conn.Close()
 	}()
-	keepAlive := l.config.KeepAlive
 	reader := newReader(conn)
 	messageCount := 0
 	doneCh := make(chan struct{})
 	activeCh := make(chan struct{})
 
-	go func() {
-		timeout := l.config.ConnTimeout
-		timer := time.NewTimer(timeout)
-		defer timer.Stop()
+	connDeadTimeout := l.config.ConnTimeout + (5 * time.Second)
 
-		for {
-			select {
-			case <-activeCh:
-				if !timer.Stop() {
-					<-timer.C
-				}
-				timer.Reset(timeout)
-			case <-timer.C:
-				fmt.Println("time out2")
-				conn.Close()
-				close(doneCh)
-				return
-			case <-doneCh:
-				return
-			}
-		}
-
-	}()
+	go keepAliveTimer(conn, l.config.ConnTimeout, activeCh, doneCh)
 
 	for {
-		conn.SetReadDeadline(time.Now().Add(l.config.ConnTimeout + (3 * time.Second)))
+		conn.SetReadDeadline(time.Now().Add(connDeadTimeout))
 		//--------------------------------------------
 		fLine, err := readFirsLine(reader)
 		if err != nil {
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-				fmt.Println("Time out")
+				fmt.Println("SetReadDeadline timeout")
 				return
 			}
 			if err == io.EOF {
 				return
 			}
-			fmt.Println(err.Error())
+			if strings.Contains(err.Error(), "use of closed network connection") {
+				return
+			}
+			fmt.Println("some reading error", err.Error())
+			return
 		}
 		if isBlank(fLine) {
 			return
@@ -164,7 +108,7 @@ func (l *lyra) connHandle(conn net.Conn, router *http1.Router) {
 
 		request := http1.NewRequest(fLine, headersLines, body)
 		if connVal, ok := request.GetHeaders()["connection"]; ok && connVal == "close" {
-			keepAlive = false
+			l.config.KeepAlive = false
 		}
 		for k, v := range request.GetHeaders() {
 			fmt.Println(k, "---", v)
@@ -185,7 +129,7 @@ func (l *lyra) connHandle(conn net.Conn, router *http1.Router) {
 		case activeCh <- struct{}{}:
 		default:
 		}
-		if !keepAlive || messageCount >= l.config.MaxConnMesgCount {
+		if !l.config.KeepAlive || messageCount >= l.config.MaxConnMesgCount {
 			break
 		}
 	}

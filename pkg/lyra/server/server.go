@@ -55,7 +55,6 @@ func (l *lyra) ListenAdnServ() {
 	}
 	defer listener.Close()
 
-	l.router.Handle("GET", "/", http1.Hello)
 	fmt.Println("Lyra listening on", l.config.Addr)
 
 	for {

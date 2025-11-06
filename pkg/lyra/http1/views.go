@@ -14,6 +14,26 @@ func MethodNotAllowed(request *Request) *Response {
 
 func Hello(request *Request) *Response {
 	response := NewResponse()
-	response.AddBody([]byte("<p>Lyyyyraaa Helloooo</p>"))
+	response.AddBody([]byte(`
+	<p>Lyyyyraaa Helloooo</p>
+	<p>Lyyyyraaa Helloooo</p>
+	<p>Lyyyyraaa Helloooo</p>
+	<p>Lyyyyraaa Helloooo</p>
+	<p>Lyyyyraaa Helloooo</p>
+	<p>Lyyyyraaa Helloooo</p>
+	`))
+	return response
+}
+
+func About(request *Request) *Response {
+	response := NewResponse()
+	response.AddBody(
+		[]byte(`
+		<h1>О нас</h1>
+		<p>safl kjs kj dkf ksfk;fdk; snfk fdkld lkdf </p>
+		<p>afsjjka kjafsk fsjak afk</p>
+		<h2>jghf</h2>
+		<p>sgdlsdlgjk sgg sd kj gsgskhg hkls ksjk sdgsg d</p>
+		`))
 	return response
 }
