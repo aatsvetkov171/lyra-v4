@@ -9,7 +9,7 @@ import (
 func main() {
 
 	var config server.Config = server.Config{
-		Addr:               "localhost:8003",
+		Addr:               "localhost:8004",
 		Network:            "tcp",
 		ReadTimeout:        time.Second,
 		WriteTimeout:       time.Second,

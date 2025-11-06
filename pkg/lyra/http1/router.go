@@ -1,9 +1,5 @@
 package http1
 
-import (
-	"strings"
-)
-
 type HandleFunc func(*Request) *Response
 
 type Router struct {
@@ -18,8 +14,8 @@ func NewRouter() *Router {
 }
 
 func (r *Router) Handle(method string, path string, h HandleFunc) {
-	if r.router[strings.ToUpper(method)] == nil {
-		r.router[strings.ToUpper(method)] = make(map[string]HandleFunc)
+	if r.router[method] == nil {
+		r.router[method] = make(map[string]HandleFunc)
 	}
 	r.router[method][path] = h
 }
@@ -29,7 +25,7 @@ func (r *Router) GetResponse(req *Request) (bool, HandleFunc) {
 		if h, ok := val[req.GetPath()]; ok {
 			return true, h
 		}
-		return false, nil
+		return false, NotFound
 	}
-	return false, nil
+	return false, MethodNotAllowed
 }

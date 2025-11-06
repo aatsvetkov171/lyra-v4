@@ -92,6 +92,33 @@ func (l *lyra) connHandle(conn net.Conn, router *http1.Router) {
 	keepAlive := l.config.KeepAlive
 	reader := newReader(conn)
 	messageCount := 0
+	doneCh := make(chan struct{})
+	activeCh := make(chan struct{})
+
+	go func() {
+		timeout := 7 * time.Second
+		timer := time.NewTimer(timeout)
+		defer timer.Stop()
+
+		for {
+			select {
+			case <-activeCh:
+				if !timer.Stop() {
+					<-timer.C
+				}
+				timer.Reset(timeout)
+			case <-timer.C:
+				fmt.Println("time out2")
+				conn.Close()
+				close(doneCh)
+				return
+			case <-doneCh:
+				return
+			}
+		}
+
+	}()
+
 	for {
 		conn.SetReadDeadline(time.Now().Add(time.Duration(l.config.MaxConnTime) * time.Second))
 		//--------------------------------------------
@@ -99,6 +126,7 @@ func (l *lyra) connHandle(conn net.Conn, router *http1.Router) {
 		if err != nil {
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
 				fmt.Println("Time out")
+				close(doneCh)
 				return
 			}
 			if err == io.EOF {
@@ -131,7 +159,7 @@ func (l *lyra) connHandle(conn net.Conn, router *http1.Router) {
 			if err == io.EOF {
 				return
 			}
-			fmt.Println(err.Error())
+			fmt.Println("vontent length error:::::", err.Error())
 			return
 		}
 
@@ -139,17 +167,25 @@ func (l *lyra) connHandle(conn net.Conn, router *http1.Router) {
 		if connVal, ok := request.GetHeaders()["connection"]; ok && connVal == "close" {
 			keepAlive = false
 		}
-		fmt.Println(request)
+		for k, v := range request.GetHeaders() {
+			fmt.Println(k, "---", v)
+		}
 
 		messageCount += 1
 
 		writer := newWriter(conn)
 
 		_, responseFunc := router.GetResponse(request)
+
 		response := responseFunc(request)
+
 		writer.Write(response.Build())
 
 		writer.Flush()
+		select {
+		case activeCh <- struct{}{}:
+		default:
+		}
 		if !keepAlive || messageCount >= l.config.MaxConnMesgCount {
 			break
 		}

@@ -19,7 +19,9 @@ func (r *Request) parseHeaders(headers []byte) {
 		if len(header) < 2 {
 			continue
 		}
+
 		r.headers[strings.TrimSpace(strings.ToLower(header[0]))] = strings.TrimSpace(header[1])
+		//fmt.Println(r.headers[strings.ToLower(header[0])])
 	}
 }
 
