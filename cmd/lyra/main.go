@@ -8,6 +8,7 @@ import (
 func main() {
 
 	config := server.NewConfig("localhost:8000")
+	config.BuferSizeFile = 1024
 	router := http1.NewRouter()
 
 	router.GET("/", IndexPage)

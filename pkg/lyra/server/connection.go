@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,6 +25,62 @@ func newWriter(conn net.Conn) *bufio.Writer {
 
 func isBlank(fline []byte) bool {
 	return len(fline) == 0
+}
+
+func getPathFile(filename string, templateDir string, debug bool) (string, error) {
+	if debug {
+		path, err := os.Getwd()
+		return path + "\\" + templateDir + filename, err
+	} else {
+		exe, err := os.Executable()
+		if err != nil {
+			return "", err
+		}
+		index := strings.LastIndex(exe, "\\") + 1
+		filepath := string([]byte(exe)[:index]) + templateDir + filename
+
+		return filepath, err
+	}
+
+	//strings.Count(exe, "/")
+
+}
+
+func sendFile(response *http1.Response, config *Config, writer *bufio.Writer) error {
+	path, err := getPathFile(response.GetFileName(), config.templateDir, config.DEBUG)
+	if err != nil {
+		return err
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	size := strconv.Itoa(int(info.Size()))
+	response.AddHeader("Content-Length", size)
+	writer.Write(response.GetHeadersBytes())
+	writer.Flush()
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	scanner := bufio.NewReader(file)
+
+	buf := make([]byte, config.BuferSizeFile)
+	for {
+		n, err := scanner.Read(buf)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return err
+		}
+		if n > 0 {
+			writer.Write(buf[:n])
+		}
+	}
+	writer.Flush()
+	file.Close()
+	return nil
 }
 
 func keepAliveTimer(conn net.Conn, timeout time.Duration, activeCh, doneCh chan struct{}) {
@@ -51,6 +109,7 @@ func (l *lyra) connHandle(conn net.Conn, router *http1.Router) {
 		conn.Close()
 	}()
 	reader := newReader(conn)
+	writer := newWriter(conn)
 	messageCount := 0
 	doneCh := make(chan struct{})
 	activeCh := make(chan struct{})
@@ -116,15 +175,15 @@ func (l *lyra) connHandle(conn net.Conn, router *http1.Router) {
 
 		messageCount += 1
 
-		writer := newWriter(conn)
+		response := router.GetResponse(request)
 
-		_, responseFunc := router.GetResponse(request)
+		if response.GetFileName() != "nofile" {
+			err := sendFile(response, &l.config, writer)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+		}
 
-		response := responseFunc(request)
-
-		writer.Write(response.Build())
-
-		writer.Flush()
 		select {
 		case activeCh <- struct{}{}:
 		default:

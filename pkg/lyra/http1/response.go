@@ -4,62 +4,62 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 )
 
-// версия http статус код статус текст \r\n
-// headers \r\n
-// \r\n
-// body
-
-var statusMap = map[string]string{
-	"200": "OK",
-	"404": "Not Found",
+var statusStrings = map[int]string{
+	200: "OK",
 }
 
 type Response struct {
-	proto        string
-	statusCode   string
-	statusString string
-	headers      map[string]string
-	body         []byte
+	statusCode int
+	proto      string
+	headers    map[string]string
+	body       []byte
+	filename   string
 }
 
-func NewResponse() *Response {
-	response := Response{
-		proto:        "HTTP/1.1",
-		statusCode:   "200",
-		statusString: statusMap["200"], // if ... ; ok ?
-		headers: map[string]string{
-			"Content-Type": "text/html; charset=utf-8",
-			"Server":       "Lyra/1.0",
-			"Connection":   "keep-alive",
-		},
+func NewResponse(statusCode int) *Response {
+	newResponse := Response{
+		statusCode: statusCode,
+		proto:      "HTTP/1.1",
+		headers:    make(map[string]string),
+		filename:   "nofile",
 	}
-	return &response
+	newResponse.headers["Content-Type"] = "text/html; charset=UTF-8"
+	newResponse.headers["Server"] = "Lyra/0.1"
+	newResponse.headers["Connection"] = "keep-alive"
+	return &newResponse
 }
 
-func (r *Response) AddBody(body []byte) {
-	r.body = body
+func (response *Response) AddHeader(key string, val string) {
+	response.headers[key] = val
 }
 
-func (r *Response) AddHeader(key string, val string) {
-	r.headers[key] = val
+func (response *Response) GetHeadersBytes() []byte {
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "%s %d %s\r\n", response.proto, response.statusCode, statusStrings[response.statusCode])
+	for k, v := range response.headers {
+		fmt.Fprintf(&sb, "%s : %s\r\n", k, v)
+	}
+	fmt.Fprintf(&sb, "\r\n")
+	result := []byte(sb.String())
+	return result
 }
 
-func (r *Response) Build() []byte {
-	if _, ok := r.headers["Date"]; !ok {
-		r.headers["Date"] = time.Now().Format(time.RFC1123)
-	}
-	if _, ok := r.headers["Content-Length"]; !ok {
-		r.headers["Content-Length"] = strconv.Itoa(len(r.body))
-	}
-	var b strings.Builder
-	b.WriteString(fmt.Sprintf("%s %s %s\r\n", r.proto, r.statusCode, r.statusString))
-	for k, v := range r.headers {
-		b.WriteString(fmt.Sprintf("%s:%s\r\n", k, v))
-	}
-	b.WriteString("\r\n")
-	b.Write(r.body)
-	return []byte(b.String())
+func (response *Response) GetBody() []byte {
+	return response.body
+}
+
+func (response *Response) GetFileName() string {
+	return response.filename
+}
+
+func (response *Response) AddString(str string) {
+	response.body = []byte(str)
+	size := strconv.Itoa(len(response.body))
+	response.AddHeader("Content-Length", size)
+}
+
+func (response *Response) AddFile(filename string) {
+	response.filename = filename
 }

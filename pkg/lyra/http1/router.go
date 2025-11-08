@@ -27,7 +27,7 @@ func (r *Router) GET(path string, h HandleFunc) {
 	r.router["GET"][path] = h
 }
 
-func (r *Router) GetResponse(req *Request) (bool, HandleFunc) {
+func (r *Router) GetResponseFunc(req *Request) (bool, HandleFunc) {
 	if val, ok := r.router[req.GetMethod()]; ok {
 		if h, ok := val[req.GetPath()]; ok {
 			return true, h
@@ -35,4 +35,10 @@ func (r *Router) GetResponse(req *Request) (bool, HandleFunc) {
 		return false, NotFound
 	}
 	return false, MethodNotAllowed
+}
+
+func (r *Router) GetResponse(request *Request) *Response {
+	_, resFunc := r.GetResponseFunc(request)
+	response := resFunc(request)
+	return response
 }
