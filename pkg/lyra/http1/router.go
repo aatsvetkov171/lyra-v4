@@ -27,6 +27,13 @@ func (r *Router) GET(path string, h HandleFunc) {
 	r.router["GET"][path] = h
 }
 
+func (r *Router) POST(path string, h HandleFunc) {
+	if r.router["POST"] == nil {
+		r.router["POST"] = make(map[string]HandleFunc)
+	}
+	r.router["POST"][path] = h
+}
+
 func (r *Router) GetResponseFunc(req *Request) (bool, HandleFunc) {
 	if val, ok := r.router[req.GetMethod()]; ok {
 		if h, ok := val[req.GetPath()]; ok {

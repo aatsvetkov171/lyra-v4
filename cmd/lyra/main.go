@@ -12,6 +12,7 @@ func main() {
 	router := http1.NewRouter()
 
 	router.GET("/", IndexPage)
+	router.POST("/hello", SubmitForm)
 
 	server := server.NewServer(config, router)
 	server.ListenAdnServ()

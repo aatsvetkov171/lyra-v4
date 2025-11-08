@@ -5,11 +5,12 @@ import (
 )
 
 type Request struct {
-	method  string
-	path    string
-	proto   string
-	headers map[string]string
-	body    []byte
+	method   string
+	path     string
+	proto    string
+	headers  map[string]string
+	body     []byte
+	DataPOST map[string]string
 }
 
 func (r *Request) parseHeaders(headers []byte) {
@@ -43,7 +44,35 @@ func NewRequest(Fline []byte, headers []byte, body []byte) *Request {
 
 	req.parseHeaders(headers)
 
+	if req.method == "POST" {
+		req.createDataPOST()
+	}
+
 	return &req
+}
+
+// name=alex&fam=true
+func parseQuery(body []byte) map[string]string {
+	dict := make(map[string]string)
+	if len(body) == 0 {
+		return dict
+	}
+	slice1 := strings.Split(string(body), "&")
+	for i := 0; i < len(slice1); i++ {
+		inx := strings.Index(slice1[i], "=")
+		if inx == -1 {
+			continue
+		}
+		dict[slice1[i][:inx]] = slice1[i][inx+1:]
+	}
+	return dict
+}
+func (r *Request) createDataPOST() {
+	if r.method == "POST" {
+		if r.headers["content-type"] == "application/x-www-form-urlencoded" {
+			r.DataPOST = parseQuery(r.body)
+		}
+	}
 }
 
 func (r *Request) GetHeaders() map[string]string {
@@ -56,4 +85,8 @@ func (r *Request) GetMethod() string {
 
 func (r *Request) GetPath() string {
 	return r.path
+}
+
+func (r *Request) GetBody() []byte {
+	return r.body
 }

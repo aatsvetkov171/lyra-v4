@@ -157,6 +157,7 @@ func (l *lyra) connHandle(conn net.Conn, router *http1.Router) {
 			}
 		}
 		body, err := readReqBody(reader, contentLen)
+		fmt.Println(string(body))
 		if err != nil {
 			if err == io.EOF {
 				return
@@ -182,6 +183,11 @@ func (l *lyra) connHandle(conn net.Conn, router *http1.Router) {
 			if err != nil {
 				fmt.Println(err.Error())
 			}
+		} else {
+			fmt.Println("block else")
+			writer.Write(response.GetHeadersBytes())
+			writer.Write(response.GetBody())
+			writer.Flush()
 		}
 
 		select {
