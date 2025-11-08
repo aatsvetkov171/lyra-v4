@@ -17,7 +17,7 @@ type Config struct {
 	ConnTimeout        time.Duration
 	MaxConnMesgCount   int
 	ReqContentLenLimit [2]int
-	templateDir        string
+	TemplateDir        string
 	DEBUG              bool
 	BuferSizeFile      int
 }
@@ -32,7 +32,7 @@ func NewConfig(addr string) *Config {
 		ConnTimeout:        10 * time.Second,
 		MaxConnMesgCount:   100,
 		ReqContentLenLimit: [2]int{0, 0},
-		templateDir:        "templates\\",
+		TemplateDir:        "templates\\",
 		DEBUG:              true,
 		BuferSizeFile:      4096,
 	}

@@ -39,7 +39,7 @@ func (response *Response) GetHeadersBytes() []byte {
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "%s %d %s\r\n", response.proto, response.statusCode, statusStrings[response.statusCode])
 	for k, v := range response.headers {
-		fmt.Fprintf(&sb, "%s : %s\r\n", k, v)
+		fmt.Fprintf(&sb, "%s: %s\r\n", k, v)
 	}
 	fmt.Fprintf(&sb, "\r\n")
 	result := []byte(sb.String())

@@ -47,7 +47,7 @@ func getPathFile(filename string, templateDir string, debug bool) (string, error
 }
 
 func sendFile(response *http1.Response, config *Config, writer *bufio.Writer) error {
-	path, err := getPathFile(response.GetFileName(), config.templateDir, config.DEBUG)
+	path, err := getPathFile(response.GetFileName(), config.TemplateDir, config.DEBUG)
 	if err != nil {
 		return err
 	}
