@@ -1,6 +1,7 @@
 package http1
 
 import (
+	"net/url"
 	"strings"
 )
 
@@ -59,11 +60,16 @@ func parseQuery(body []byte) map[string]string {
 	}
 	slice1 := strings.Split(string(body), "&")
 	for i := 0; i < len(slice1); i++ {
-		inx := strings.Index(slice1[i], "=")
-		if inx == -1 {
+		parts := strings.SplitN(slice1[i], "=", 2)
+		if len(parts) != 2 {
 			continue
 		}
-		dict[slice1[i][:inx]] = slice1[i][inx+1:]
+		key, err1 := url.QueryUnescape(parts[0])
+		val, err2 := url.QueryUnescape(parts[1])
+		if err1 == nil && err2 == nil {
+			dict[key] = val
+		}
+
 	}
 	return dict
 }

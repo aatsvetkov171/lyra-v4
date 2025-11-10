@@ -9,10 +9,9 @@ func main() {
 
 	config := server.NewConfig("localhost:8000")
 	config.BuferSizeFile = 1024
-	router := http1.NewRouter()
+	router := http1.NewRouter(config.Path.StaticDir)
 
 	router.GET("/", IndexPage)
-	router.POST("/hello", SubmitForm)
 
 	server := server.NewServer(config, router)
 	server.ListenAdnServ()

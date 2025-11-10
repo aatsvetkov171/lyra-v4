@@ -3,12 +3,14 @@ package http1
 type HandleFunc func(*Request) *Response
 
 type Router struct {
-	router map[string]map[string]HandleFunc
+	router    map[string]map[string]HandleFunc
+	staticDir string
 }
 
-func NewRouter() *Router {
+func NewRouter(staicPath string) *Router {
 	newRouter := Router{
-		router: make(map[string]map[string]HandleFunc),
+		router:    make(map[string]map[string]HandleFunc),
+		staticDir: staicPath,
 	}
 	return &newRouter
 }
@@ -38,6 +40,11 @@ func (r *Router) GetResponseFunc(req *Request) (bool, HandleFunc) {
 	if val, ok := r.router[req.GetMethod()]; ok {
 		if h, ok := val[req.GetPath()]; ok {
 			return true, h
+		}
+		if len(req.GetPath()) >= 8 {
+			if req.GetPath()[:8] == "/"+r.staticDir+"/" {
+				return true, SendStaticFile
+			}
 		}
 		return false, NotFound
 	}

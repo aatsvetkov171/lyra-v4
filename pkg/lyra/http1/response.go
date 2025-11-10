@@ -8,6 +8,8 @@ import (
 
 var statusStrings = map[int]string{
 	200: "OK",
+	404: "Not Found",
+	405: "Method Not Allowed",
 }
 
 type Response struct {
@@ -33,6 +35,10 @@ func NewResponse(statusCode int) *Response {
 
 func (response *Response) AddHeader(key string, val string) {
 	response.headers[key] = val
+}
+
+func (response *Response) GetHeaders() map[string]string {
+	return response.headers
 }
 
 func (response *Response) GetHeadersBytes() []byte {

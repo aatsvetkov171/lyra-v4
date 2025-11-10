@@ -8,6 +8,12 @@ import (
 	"github.com/aatsvetkov171/lyra-v4/pkg/lyra/http1"
 )
 
+type Paths struct {
+	TemplateDir string
+	StaticDir   string
+	MediaDir    string
+}
+
 type Config struct {
 	Addr               string
 	Network            string
@@ -17,7 +23,7 @@ type Config struct {
 	ConnTimeout        time.Duration
 	MaxConnMesgCount   int
 	ReqContentLenLimit [2]int
-	TemplateDir        string
+	Path               *Paths
 	DEBUG              bool
 	BuferSizeFile      int
 }
@@ -32,9 +38,13 @@ func NewConfig(addr string) *Config {
 		ConnTimeout:        10 * time.Second,
 		MaxConnMesgCount:   100,
 		ReqContentLenLimit: [2]int{0, 0},
-		TemplateDir:        "templates\\",
-		DEBUG:              true,
-		BuferSizeFile:      4096,
+		Path: &Paths{
+			TemplateDir: "templates",
+			StaticDir:   "static",
+			MediaDir:    "media",
+		},
+		DEBUG:         true,
+		BuferSizeFile: 4096,
 	}
 	return &newConfig
 }

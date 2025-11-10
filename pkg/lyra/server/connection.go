@@ -30,14 +30,14 @@ func isBlank(fline []byte) bool {
 func getPathFile(filename string, templateDir string, debug bool) (string, error) {
 	if debug {
 		path, err := os.Getwd()
-		return path + "\\" + templateDir + filename, err
+		return path + "\\" + templateDir + "\\" + filename, err
 	} else {
 		exe, err := os.Executable()
 		if err != nil {
 			return "", err
 		}
 		index := strings.LastIndex(exe, "\\") + 1
-		filepath := string([]byte(exe)[:index]) + templateDir + filename
+		filepath := string([]byte(exe)[:index]) + templateDir + "\\" + filename
 
 		return filepath, err
 	}
@@ -47,7 +47,14 @@ func getPathFile(filename string, templateDir string, debug bool) (string, error
 }
 
 func sendFile(response *http1.Response, config *Config, writer *bufio.Writer) error {
-	path, err := getPathFile(response.GetFileName(), config.TemplateDir, config.DEBUG)
+	var path string
+	var err error
+	if strings.Contains(response.GetHeaders()["Content-Type"], "text/css") ||
+		strings.Contains(response.GetHeaders()["Content-Type"], "text/javascript") {
+		path, err = getPathFile(response.GetFileName(), config.Path.StaticDir, config.DEBUG)
+	} else {
+		path, err = getPathFile(response.GetFileName(), config.Path.TemplateDir, config.DEBUG)
+	}
 	if err != nil {
 		return err
 	}
@@ -157,7 +164,7 @@ func (l *lyra) connHandle(conn net.Conn, router *http1.Router) {
 			}
 		}
 		body, err := readReqBody(reader, contentLen)
-		fmt.Println(string(body))
+
 		if err != nil {
 			if err == io.EOF {
 				return
@@ -167,11 +174,9 @@ func (l *lyra) connHandle(conn net.Conn, router *http1.Router) {
 		}
 
 		request := http1.NewRequest(fLine, headersLines, body)
+		fmt.Println("new request:", request.GetMethod(), request.GetPath())
 		if connVal, ok := request.GetHeaders()["connection"]; ok && connVal == "close" {
 			l.config.KeepAlive = false
-		}
-		for k, v := range request.GetHeaders() {
-			fmt.Println(k, "---", v)
 		}
 
 		messageCount += 1
@@ -184,7 +189,6 @@ func (l *lyra) connHandle(conn net.Conn, router *http1.Router) {
 				fmt.Println(err.Error())
 			}
 		} else {
-			fmt.Println("block else")
 			writer.Write(response.GetHeadersBytes())
 			writer.Write(response.GetBody())
 			writer.Flush()
