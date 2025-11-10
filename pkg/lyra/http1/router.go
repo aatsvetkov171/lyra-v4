@@ -1,5 +1,10 @@
 package http1
 
+import (
+	"fmt"
+	"strings"
+)
+
 type HandleFunc func(*Request) *Response
 
 type Router struct {
@@ -42,17 +47,49 @@ func (r *Router) GetResponseFunc(req *Request) (bool, HandleFunc) {
 			return true, h
 		}
 		if len(req.GetPath()) >= 8 {
-			if req.GetPath()[:8] == "/"+r.staticDir+"/" {
-				return true, SendStaticFile
+			staticPrefix := "/" + r.staticDir + "/"
+			if strings.HasPrefix(req.GetPath(), staticPrefix) {
+				return true, r.SendStaticFile
 			}
 		}
-		return false, NotFound
+		return false, r.NotFound
 	}
-	return false, MethodNotAllowed
+	return false, r.MethodNotAllowed
 }
 
 func (r *Router) GetResponse(request *Request) *Response {
 	_, resFunc := r.GetResponseFunc(request)
 	response := resFunc(request)
+	return response
+}
+
+//--------------------------------VIEWS router
+
+func (r *Router) SendStaticFile(request *Request) *Response {
+	response := NewResponse(200)
+	fileEnd := strings.Split(request.GetPath(), ".")
+	if len(fileEnd) == 2 {
+		switch fileEnd[1] {
+		case "css":
+			response.GetHeaders()["Content-Type"] = "text/css; charset=UTF-8"
+		case "js":
+			response.GetHeaders()["Content-Type"] = "text/javascript; charset=UTF-8"
+		}
+	}
+	l := len(r.staticDir) + 2
+	fmt.Println(request.GetPath()[l:])
+	response.AddFile(request.GetPath()[l:])
+	return response
+}
+
+func (r *Router) NotFound(request *Request) *Response {
+	response := NewResponse(404)
+	response.AddString("<h1>Not Found</h1>")
+	return response
+}
+
+func (r *Router) MethodNotAllowed(request *Request) *Response {
+	response := NewResponse(405)
+	response.AddString("<h1>Method Not Allowed</h1>")
 	return response
 }

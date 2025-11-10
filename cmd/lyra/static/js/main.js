@@ -1,3 +1,1 @@
-let name = "alex"
-
-console.log("hello " + name)
+console.log("hello faas")

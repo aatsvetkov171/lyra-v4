@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -30,15 +31,15 @@ func isBlank(fline []byte) bool {
 func getPathFile(filename string, templateDir string, debug bool) (string, error) {
 	if debug {
 		path, err := os.Getwd()
-		return path + "\\" + templateDir + "\\" + filename, err
+
+		return filepath.Join(path, templateDir, filename), err
 	} else {
 		exe, err := os.Executable()
 		if err != nil {
 			return "", err
 		}
 		index := strings.LastIndex(exe, "\\") + 1
-		filepath := string([]byte(exe)[:index]) + templateDir + "\\" + filename
-
+		filepath := filepath.Join(string([]byte(exe)[:index]), templateDir, filename)
 		return filepath, err
 	}
 
@@ -52,6 +53,7 @@ func sendFile(response *http1.Response, config *Config, writer *bufio.Writer) er
 	if strings.Contains(response.GetHeaders()["Content-Type"], "text/css") ||
 		strings.Contains(response.GetHeaders()["Content-Type"], "text/javascript") {
 		path, err = getPathFile(response.GetFileName(), config.Path.StaticDir, config.DEBUG)
+		fmt.Println(">>>>", path)
 	} else {
 		path, err = getPathFile(response.GetFileName(), config.Path.TemplateDir, config.DEBUG)
 	}
@@ -186,7 +188,11 @@ func (l *lyra) connHandle(conn net.Conn, router *http1.Router) {
 		if response.GetFileName() != "nofile" {
 			err := sendFile(response, &l.config, writer)
 			if err != nil {
-				fmt.Println(err.Error())
+				fmt.Println("file not found", err.Error())
+				response = router.NotFound(request)
+				writer.Write(response.GetHeadersBytes())
+				writer.Write(response.GetBody())
+				writer.Flush()
 			}
 		} else {
 			writer.Write(response.GetHeadersBytes())
