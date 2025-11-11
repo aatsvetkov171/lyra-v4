@@ -88,7 +88,9 @@ func (r *Request) GetHeaders() map[string]string {
 func (r *Request) GetMethod() string {
 	return r.method
 }
-
+func (r *Request) GetProto() string {
+	return r.proto
+}
 func (r *Request) GetPath() string {
 	return r.path
 }

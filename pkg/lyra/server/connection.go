@@ -75,10 +75,10 @@ func getPathFile(filename string, templateDir string, debug bool) (string, error
 func sendFile(response *http1.Response, config *Config, writer *bufio.Writer) error {
 	var path string
 	var err error
-	if strings.Contains(response.GetHeaders()["Content-Type"], "text/css") ||
-		strings.Contains(response.GetHeaders()["Content-Type"], "text/javascript") {
+	if response.GetMimeType() == "static" {
 		path, err = getPathFile(response.GetFileName(), config.Path.StaticDir, config.DEBUG)
-		//fmt.Println(">>>>", path)
+	} else if response.GetMimeType() == "media" {
+		path, err = getPathFile(response.GetFileName(), config.Path.MediaDir, config.DEBUG)
 	} else {
 		path, err = getPathFile(response.GetFileName(), config.Path.TemplateDir, config.DEBUG)
 	}
@@ -128,7 +128,6 @@ func keepAliveTimer(conn net.Conn, timeout time.Duration, activeCh, doneCh chan 
 			}
 			timer.Reset(timeout)
 		case <-timer.C:
-			fmt.Println("keep-alive timeout, conn closed")
 			conn.Close()
 			close(doneCh)
 			return
@@ -140,13 +139,18 @@ func keepAliveTimer(conn net.Conn, timeout time.Duration, activeCh, doneCh chan 
 
 func (l *lyra) connHandle(conn net.Conn, router *http1.Router) {
 
+	l.logger.Info("new connection %s", conn.RemoteAddr().String())
+
 	reader := newReader(conn)
 	writer := newWriter(conn)
 
 	defer func() {
-		conn.Close()
+		l.logger.Info("connection closed %s", conn.RemoteAddr().String())
+
 		putReader(reader)
 		putWriter(writer)
+		conn.Close()
+
 	}()
 
 	messageCount := 0
@@ -170,11 +174,13 @@ func (l *lyra) connHandle(conn net.Conn, router *http1.Router) {
 				return
 			}
 			if strings.Contains(err.Error(), "use of closed network connection") {
+				l.logger.Debug("keep-alive timeout")
 				return
 			}
 			fmt.Println("some reading error", err.Error())
 			return
 		}
+
 		if isBlank(fLine) {
 			return
 		}
@@ -206,7 +212,8 @@ func (l *lyra) connHandle(conn net.Conn, router *http1.Router) {
 		}
 
 		request := http1.NewRequest(fLine, headersLines, body)
-		fmt.Println("new request:", request.GetMethod(), request.GetPath())
+
+		l.logger.Debug("new request %s %s %s", request.GetMethod(), request.GetPath(), request.GetProto())
 		if connVal, ok := request.GetHeaders()["connection"]; ok && connVal == "close" {
 			l.config.KeepAlive = false
 		}
@@ -214,6 +221,7 @@ func (l *lyra) connHandle(conn net.Conn, router *http1.Router) {
 		messageCount += 1
 
 		response := router.GetResponse(request)
+		l.logger.Debug("mime type %s", response.GetMimeType())
 
 		if response.GetFileName() != "nofile" {
 			err := sendFile(response, &l.config, writer)
@@ -229,7 +237,6 @@ func (l *lyra) connHandle(conn net.Conn, router *http1.Router) {
 			writer.Write(response.GetBody())
 			writer.Flush()
 		}
-
 		select {
 		case activeCh <- struct{}{}:
 		default:

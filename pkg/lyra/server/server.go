@@ -53,6 +53,7 @@ type lyra struct {
 	Name   string
 	config Config
 	router *http1.Router
+	logger *LyraLog
 }
 
 func NewServer(conf *Config, router *http1.Router) *lyra {
@@ -60,6 +61,7 @@ func NewServer(conf *Config, router *http1.Router) *lyra {
 		Name:   "Lyra-v4",
 		config: *conf,
 		router: router,
+		logger: NewLyraLog(),
 	}
 	return &newLyra
 }
@@ -71,7 +73,7 @@ func (l *lyra) ListenAdnServ() {
 	}
 	defer listener.Close()
 
-	fmt.Println("Lyra listening on", l.config.Addr)
+	l.logger.Info("listening on %s", l.config.Addr)
 
 	for {
 		conn, err := listener.Accept()

@@ -9,24 +9,49 @@ import (
 
 func main() {
 	url := "http://localhost:8000/"
-	count := 10
+	count := 300
 
 	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var totalTime time.Duration
+	var maxTime time.Duration
+	var errors int
+
 	start := time.Now()
 
 	for i := 0; i < count; i++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
+			reqStart := time.Now()
 			resp, err := http.Get(url)
+			elapsed := time.Since(reqStart)
+
+			mu.Lock()
 			if err != nil {
-				fmt.Println(err.Error())
-				return
+				errors++
+			} else {
+				resp.Body.Close()
+				totalTime += elapsed
+				if elapsed > maxTime {
+					maxTime = elapsed
+				}
 			}
-			resp.Body.Close()
+			mu.Unlock()
 		}(i)
 	}
+
 	wg.Wait()
-	end := time.Since(start)
-	fmt.Printf("\n%d запросов за %v\n", count, end)
+	duration := time.Since(start)
+
+	avgTime := totalTime / time.Duration(count-errors)
+	rps := float64(count-errors) / duration.Seconds()
+
+	fmt.Println("----- РЕЗУЛЬТАТЫ -----")
+	fmt.Printf("Всего запросов: %d\n", count)
+	fmt.Printf("Ошибок: %d\n", errors)
+	fmt.Printf("Среднее время ответа: %v\n", avgTime)
+	fmt.Printf("Максимальное время ответа: %v\n", maxTime)
+	fmt.Printf("Полное время теста: %v\n", duration)
+	fmt.Printf("Примерная скорость: %.2f RPS\n", rps)
 }
