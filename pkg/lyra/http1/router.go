@@ -1,7 +1,6 @@
 package http1
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -77,7 +76,7 @@ func (r *Router) SendStaticFile(request *Request) *Response {
 		}
 	}
 	l := len(r.staticDir) + 2
-	fmt.Println(request.GetPath()[l:])
+	//fmt.Println(request.GetPath()[l:])
 	response.AddFile(request.GetPath()[l:])
 	return response
 }

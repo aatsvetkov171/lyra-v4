@@ -9,7 +9,6 @@ func main() {
 
 	config := server.NewConfig("localhost:8000")
 	config.BuferSizeFile = 1024
-	config.Path.StaticDir = "vollly"
 	router := http1.NewRouter(config.Path.StaticDir)
 
 	router.GET("/", IndexPage)

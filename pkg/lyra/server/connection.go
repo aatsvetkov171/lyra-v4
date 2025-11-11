@@ -9,19 +9,44 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aatsvetkov171/lyra-v4/pkg/lyra/http1"
 )
 
+var readerPool = sync.Pool{
+	New: func() any {
+		return bufio.NewReader(nil)
+	},
+}
+
+var writerPool = sync.Pool{
+	New: func() any {
+		return bufio.NewWriter(nil)
+	},
+}
+
 func newReader(conn net.Conn) *bufio.Reader {
-	reader := bufio.NewReader(conn)
-	return reader
+	r := readerPool.Get().(*bufio.Reader)
+	r.Reset(conn)
+	return r
+}
+
+func putReader(r *bufio.Reader) {
+	r.Reset(nil)
+	readerPool.Put(r)
 }
 
 func newWriter(conn net.Conn) *bufio.Writer {
-	writer := bufio.NewWriter(conn)
-	return writer
+	w := writerPool.Get().(*bufio.Writer)
+	w.Reset(conn)
+	return w
+}
+
+func putWriter(w *bufio.Writer) {
+	w.Reset(nil)
+	writerPool.Put(w)
 }
 
 func isBlank(fline []byte) bool {
@@ -53,7 +78,7 @@ func sendFile(response *http1.Response, config *Config, writer *bufio.Writer) er
 	if strings.Contains(response.GetHeaders()["Content-Type"], "text/css") ||
 		strings.Contains(response.GetHeaders()["Content-Type"], "text/javascript") {
 		path, err = getPathFile(response.GetFileName(), config.Path.StaticDir, config.DEBUG)
-		fmt.Println(">>>>", path)
+		//fmt.Println(">>>>", path)
 	} else {
 		path, err = getPathFile(response.GetFileName(), config.Path.TemplateDir, config.DEBUG)
 	}
@@ -114,11 +139,16 @@ func keepAliveTimer(conn net.Conn, timeout time.Duration, activeCh, doneCh chan 
 }
 
 func (l *lyra) connHandle(conn net.Conn, router *http1.Router) {
-	defer func() {
-		conn.Close()
-	}()
+
 	reader := newReader(conn)
 	writer := newWriter(conn)
+
+	defer func() {
+		conn.Close()
+		putReader(reader)
+		putWriter(writer)
+	}()
+
 	messageCount := 0
 	doneCh := make(chan struct{})
 	activeCh := make(chan struct{})
