@@ -2,6 +2,7 @@ package server
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"net"
@@ -89,8 +90,14 @@ func sendFile(response *http1.Response, config *Config, writer *bufio.Writer) er
 	if err != nil {
 		return err
 	}
-	size := strconv.Itoa(int(info.Size()))
-	response.AddHeader("Content-Length", size)
+	size := int(info.Size())
+	fmt.Println(size)
+	for k, v := range response.GetParams() {
+		size = size - (4 + len(k)) + len(v)
+	}
+	fmt.Println(size)
+
+	response.AddHeader("Content-Length", strconv.Itoa(size))
 	writer.Write(response.GetHeadersBytes())
 	writer.Flush()
 	file, err := os.Open(path)
@@ -109,7 +116,14 @@ func sendFile(response *http1.Response, config *Config, writer *bufio.Writer) er
 			return err
 		}
 		if n > 0 {
-			writer.Write(buf[:n])
+			chank := buf[:n]
+			for key, val := range response.GetParams() {
+				fmt.Println("ALOOOOOOOOOOOPPP", key, val)
+				pattern := []byte("{{" + key + "}}")
+				fmt.Println(pattern)
+				chank = bytes.ReplaceAll(chank, pattern, []byte(val))
+			}
+			writer.Write(chank)
 		}
 	}
 	writer.Flush()

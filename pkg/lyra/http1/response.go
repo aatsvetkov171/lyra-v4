@@ -19,6 +19,7 @@ type Response struct {
 	body       []byte
 	filename   string
 	mimeType   string
+	parameters map[string]string
 }
 
 func NewResponse(statusCode int) *Response {
@@ -27,7 +28,8 @@ func NewResponse(statusCode int) *Response {
 		proto:      "HTTP/1.1",
 		headers:    make(map[string]string),
 		filename:   "nofile",
-		mimeType:   "",
+		mimeType:   "file",
+		parameters: nil,
 	}
 	newResponse.headers["Content-Type"] = "text/html; charset=UTF-8"
 	newResponse.headers["Server"] = "Lyra/0.1"
@@ -62,6 +64,12 @@ func (response *Response) GetMimeType() string {
 	return response.mimeType
 }
 
+func (response *Response) GetParams() map[string]string {
+	return response.parameters
+}
+func (response *Response) SetParams(params map[string]string) {
+	response.parameters = params
+}
 func (response *Response) GetFileName() string {
 	return response.filename
 }

@@ -15,6 +15,7 @@ var Mime = map[string]map[string]string{
 		"webp": "image/webp; charset=UTF-8",
 		"svg":  "image/svg+xml; charset=UTF-8",
 		"ico":  "image/x-icon; charset=UTF-8",
+		"pdf":  "application/pdf",
 	},
 	"static": {
 		"css": "text/css; charset=UTF-8",
