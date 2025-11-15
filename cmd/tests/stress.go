@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	url := "http://localhost:8000/"
+	url := "http://localhost:8000/ab"
 	count := 300
 
 	var wg sync.WaitGroup

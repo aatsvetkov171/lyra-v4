@@ -14,7 +14,7 @@ func main() {
 	router := http1.NewRouter(config.Path.StaticDir, config.Path.MediaDir)
 
 	router.GET("/", IndexPage)
-	router.GET("/ab", AboutPage)
+	router.POST("/about", AboutPage)
 
 	server := server.NewServer(config, router)
 	server.SetLogDebug(false)

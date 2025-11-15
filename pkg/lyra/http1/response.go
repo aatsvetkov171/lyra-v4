@@ -36,6 +36,14 @@ func NewResponse(statusCode int) *Response {
 	return &newResponse
 }
 
+func ResponseJSON(statucCode int, jsonStr string) *Response {
+	response := NewResponse(statucCode)
+	response.AddHeader("Content-Type", "application/json; charset=UTF-8")
+	response.body = []byte(jsonStr)
+	response.AddHeader("Content-Length", strconv.Itoa(len(response.body)))
+	return response
+}
+
 func (response *Response) AddHeader(key string, val string) {
 	response.headers[key] = val
 }
