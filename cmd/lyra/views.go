@@ -19,3 +19,9 @@ func IndexPage(request *http1.Request) *http1.Response {
 	})
 	return response
 }
+
+func AboutPage(request *http1.Request) *http1.Response {
+	response := http1.NewResponse(200)
+	response.AddString("Hello about")
+	return response
+}
