@@ -72,6 +72,10 @@ func NewServer(conf *Config, router *http1.Router) *lyra {
 	return &newLyra
 }
 
+func (l *lyra) SetLogDebug(flag bool) {
+	l.logger.debug = flag
+}
+
 func (l *lyra) worker(id int, connTasks <-chan net.Conn, router *http1.Router) {
 	for conn := range connTasks {
 		l.connHandle(conn, router)

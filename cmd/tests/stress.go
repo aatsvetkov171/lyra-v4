@@ -8,8 +8,8 @@ import (
 )
 
 func main() {
-	url := "http://localhost:8000/ab"
-	count := 1000
+	url := "http://localhost:8000/"
+	count := 300
 
 	var wg sync.WaitGroup
 	var mu sync.Mutex

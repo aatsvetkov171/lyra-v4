@@ -60,13 +60,9 @@ func getPathFile(filename string, templateDir string, debug bool) (string, error
 
 		return filepath.Join(path, templateDir, filename), err
 	} else {
-		exe, err := os.Executable()
-		if err != nil {
-			return "", err
-		}
-		index := strings.LastIndex(exe, "\\") + 1
-		filepath := filepath.Join(string([]byte(exe)[:index]), templateDir, filename)
-		return filepath, err
+		path, err := os.Getwd()
+
+		return filepath.Join(path, templateDir, filename), err
 	}
 
 	//strings.Count(exe, "/")
@@ -91,11 +87,11 @@ func sendFile(response *http1.Response, config *Config, writer *bufio.Writer) er
 		return err
 	}
 	size := int(info.Size())
-	fmt.Println(size)
+	//fmt.Println(size)
 	for k, v := range response.GetParams() {
 		size = size - (4 + len(k)) + len(v)
 	}
-	fmt.Println(size)
+	//fmt.Println(size)
 
 	response.AddHeader("Content-Length", strconv.Itoa(size))
 	writer.Write(response.GetHeadersBytes())
@@ -118,9 +114,7 @@ func sendFile(response *http1.Response, config *Config, writer *bufio.Writer) er
 		if n > 0 {
 			chank := buf[:n]
 			for key, val := range response.GetParams() {
-				fmt.Println("ALOOOOOOOOOOOPPP", key, val)
 				pattern := []byte("{{" + key + "}}")
-				fmt.Println(pattern)
 				chank = bytes.ReplaceAll(chank, pattern, []byte(val))
 			}
 			writer.Write(chank)

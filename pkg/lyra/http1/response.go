@@ -3,7 +3,6 @@ package http1
 import (
 	"fmt"
 	"strconv"
-	"strings"
 )
 
 var statusStrings = map[int]string{
@@ -46,14 +45,17 @@ func (response *Response) GetHeaders() map[string]string {
 }
 
 func (response *Response) GetHeadersBytes() []byte {
-	var sb strings.Builder
-	fmt.Fprintf(&sb, "%s %d %s\r\n", response.proto, response.statusCode, statusStrings[response.statusCode])
+	buf := GetResponseBuf()
+	defer PutResponseBuf(buf)
+	Fstr := fmt.Sprintf("%s %d %s\r\n", response.proto, response.statusCode, statusStrings[response.statusCode])
+	buf.WriteString(Fstr)
 	for k, v := range response.headers {
-		fmt.Fprintf(&sb, "%s: %s\r\n", k, v)
+		buf.WriteString(fmt.Sprintf("%s: %s\r\n", k, v))
 	}
-	fmt.Fprintf(&sb, "\r\n")
-	result := []byte(sb.String())
-	return result
+	buf.WriteString("\r\n")
+	out := make([]byte, buf.Len())
+	copy(out, buf.Bytes())
+	return out
 }
 
 func (response *Response) GetBody() []byte {
@@ -75,6 +77,12 @@ func (response *Response) GetFileName() string {
 }
 
 func (response *Response) AddString(str string) {
+	response.body = append(response.body, str...)
+	size := strconv.Itoa(len(response.body))
+	response.AddHeader("Content-Length", size)
+}
+
+func (response *Response) SetString(str string) {
 	response.body = []byte(str)
 	size := strconv.Itoa(len(response.body))
 	response.AddHeader("Content-Length", size)
